@@ -38,7 +38,7 @@ class StreakService {
   //Now we filtre the streakList for the current month
   void StreakListFilterFunction() {
     streakListFilter = streakList.where((element) {
-      return element.month == supplyDate.month;
+      return element.month == supplyDate.month && element.year == supplyDate.year;
     }).toList();
 
     //Now we sort the streakListFilter
