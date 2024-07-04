@@ -35,6 +35,8 @@ class DuoCalendar {
 //USER_PROPERTY [start]_________________________________________________________
   List<DateTime> streakList =
       []; //USER_PROPERTY //List of dates to be highlighted
+  List<int> colorList = [];
+  List<Color> colorPaletteList = [];
   int dayNameLetters;
 
   //Colors___________________________________>>>>>>>
@@ -188,6 +190,8 @@ class DuoCalendar {
 
 //USER_PROPERTY [end]___________________________________________________________
 
+  List<int> currentMonthColorList = [];
+
   //Day Names, choose any list according to choice //Contains USER_PROPERTY
   List<String> dayNames = []; //Determined by user while building the widget
 
@@ -216,7 +220,10 @@ class DuoCalendar {
 
   //initializing variable values //INITIALIZER
   List<List<int>> setValues() {
-    // print('Running setValues()');
+    streakList = streakList.toSet().toList();
+    //sort the streakList
+    streakList.sort();
+
     dayList = [];
     leadingDayList = [];
     trailingDayList = [];
@@ -270,7 +277,8 @@ class DuoCalendar {
           }
         }
 
-        if (dayList[i] == dayListMap_pre[j][0]) {
+        if (dayList[i] == dayListMap_pre[j][0] &&
+            monthdata == dayListMap_pre[j][2]) {
           // print('dayList[i] == dayListMap_pre[j][0]');
           // print('dayListMap_pre[j]: ${dayListMap_pre[j]}');
           dayListMap_final.add(dayListMap_pre[j]);
@@ -287,17 +295,42 @@ class DuoCalendar {
     while (dayListMap_final.length < 42) {
       dayListMap_final.add([0, 4, 1, 4]);
     }
-
+    print('dayListMap_final: $dayListMap_final');
     // print('dayListMap_final length: ${dayListMap_final.length}');
     //For rounding the corners of the 1st row-1st element and last row last elem,
     // if those have streakdata 2 or 3
     //if 3, we change to 1
     //if 2, we change to 0
+
     List<List<int>> dayListMap_final_round = roundCorners(dayListMap_final);
+    print('dayListMap_final_round ____1: $dayListMap_final_round');
 
     // print('dayListMap_final_round: $dayListMap_final_round');
 
-    return dayListMap_final_round;
+    List<List<int>> dayListMapColorSet =
+        Confirm5elem(dayListMapColorSetter(dayListMap_final_round));
+
+    print('dayListMapColorSet: $dayListMapColorSet');
+
+    return dayListMapColorSet;
+  }
+
+  List<List<int>> Confirm5elem(List<List<int>> dayListMapList) {
+    List<List<int>> dayListMapListFinal = [];
+    for (int i = 0; i < dayListMapList.length; i++) {
+      if (dayListMapList[i].length == 4) {
+        dayListMapListFinal.add([
+          dayListMapList[i][0],
+          dayListMapList[i][1],
+          dayListMapList[i][2],
+          dayListMapList[i][3],
+          dayListMapList[i][1]
+        ]);
+      } else {
+        dayListMapListFinal.add(dayListMapList[i]);
+      }
+    }
+    return dayListMapListFinal;
   }
 
   List<List<int>> roundCorners(List<List<int>> dayListMap_final_round) {
@@ -458,6 +491,7 @@ class DuoCalendar {
 
   //[[daylistelem0, 0], [daylistelem1,2],....]
   List<List<int>> buildDayListMap() {
+    circleColorSetter(); //prepares for Circle Color code addition at 4th index
     List<List<int>> dayListMapList = [];
     List<List<int>> dayListMapListPrevMonth = [];
     List<List<int>> dayListMapListNextMonth = [];
@@ -550,20 +584,24 @@ class DuoCalendar {
         }
       }
     }
-
-    // print('dayListMapList: $dayListMapList');
-
-    return dayListMapList;
+    return (dayListMapList);
   }
 
   void setStreakData() {
     StreakService _streakService = StreakService();
+
     _streakService.streakList = streakList;
+
     _streakService.supplyDate = supplyDate;
+
     _streakService.CalculateStreaks();
+
     _streakService.CalculateStreakData();
+
     longest_Streak = _streakService.longestStreak;
+
     last_Streak = _streakService.lastStreak;
+
     current_StreakIsLastStreak = _streakService.currentStreakIsLastStreak;
   }
 
@@ -617,9 +655,12 @@ class DuoCalendar {
   }
 
   Color getCircleColor(int streakData, int monthData) {
+    print('streakData: $streakData');
     if (streakData == 4) {
       return Colors.transparent;
-    } else if (monthData == 0) {
+    }
+    if (streakData >= 0 && monthData == 0) {
+      print('inside streakData >= 0');
       if (streakData == 1) {
         return streakStartColor;
       } else if (streakData == 2) {
@@ -629,9 +670,98 @@ class DuoCalendar {
       } else {
         return streakColorCurrentMonth;
       }
-    } else {
-      return Colors.transparent;
     }
+    if (streakData < 0 && monthData == 0) {
+      print('streakData negative, colorPaletteList used');
+      // print(
+      //     'returning colorPaletteList[${temp - 1}]: ${colorPaletteList[temp - 1]}');
+      return colorPaletteList[(-streakData) - 1];
+      // return Colors.transparent;
+    }
+    return Colors.transparent;
+  }
+
+  void circleColorSetter() {
+    currentMonthColorList = [];
+    if (streakList.length != colorList.length) {
+      //fill colorList with 4s
+      for (int i = 0; i < streakList.length; i++) {
+        colorList.add(0);
+      }
+      print('ColorList length is less than streakList length, Does not match');
+      return;
+    } else {
+      //we prepare currentMonthColorList
+      for (int i = 0; i < streakList.length; i++) {
+        if (streakList[i].month == supplyDate.month &&
+            streakList[i].year == supplyDate.year) {
+          currentMonthColorList.add(colorList[i]);
+        }
+      }
+    }
+    //NOTE: We would use the streakData field in the Lists for storing Circle Color Data
+    //since 0,1,2,3,4 are already used for streakData, So we make
+    //the colorList elements negative, then -1, -2, -3, -4 and so on colors can be used
+    //Also no restriction on the number of colors, can be any number of colors
+    //We define getCircleColor() such that, if streakData is negative then it is a color,
+    //Now we take that negative numeber, make it positive, subtract 1,
+    //and use that as index for the Color Pallette List
+
+    //making the colorList elements negative
+    for (int i = 0; i < colorList.length; i++) {
+      colorList[i] = -colorList[i];
+    }
+    for (int i = 0; i < currentMonthColorList.length; i++) {
+      currentMonthColorList[i] = -currentMonthColorList[i];
+    }
+
+    //Rest Setup in buildDayListMap(),
+    // we add the colorList elems to the dayListMapList accordingly
+  }
+
+  List<List<int>> dayListMapColorSetter(List<List<int>> dayListMapList) {
+    //modify the DayListMapList with circle colors
+    print('inside ColorSetter dayListMapList: $dayListMapList');
+    bool colorFlag = false;
+    List<List<int>> DayListMapList = [];
+    for (int i = 0; i < dayListMapList.length; i++) {
+      DayListMapList.add(dayListMapList[i]);
+    }
+
+    for (int i = 0; i < currentMonthColorList.length; i++) {
+      if (currentMonthColorList[i] < 0) {
+        colorFlag = true;
+        break;
+      }
+    }
+    //Now, this ensures that there are colors in the currentMonthColorList
+    if (colorFlag == false) {
+      //we add a 4th element to the dayListMapList, which is the color
+
+      for (int i = 0; i < DayListMapList.length; i++) {
+        int temp = DayListMapList[i][1];
+        DayListMapList[i].add(temp);
+      }
+      return DayListMapList;
+    } //No colors, return the original list, with added 4th element as original streakData
+
+    //If function reaches here, then colorFlag is true,
+    // so we change the colors in streakData, with negative values
+    for (int i = 0, j = 0;
+        i < DayListMapList.length && j < currentMonthColorList.length;
+        i++) {
+      //we first check month data, if 0, then we change streakData
+      if (DayListMapList[i][2] == 0) {
+        if (DayListMapList[i][1] != 4) {
+          DayListMapList[i].add(currentMonthColorList[j]);
+          j++;
+        }
+      }
+    }
+
+    print('dayListMapList return: $DayListMapList');
+
+    return DayListMapList;
   }
 
   Widget calendarBuild(BuildContext context) {
@@ -1070,7 +1200,7 @@ class DuoCalendar {
                               ),
                             ),
                             backgroundColor: getCircleColor(
-                                dayListMapListFinal[i][3],
+                                dayListMapListFinal[i][4],
                                 dayListMapListFinal[i][2]),
                           ),
                         ),
@@ -1112,7 +1242,7 @@ class DuoCalendar {
                               ),
                             ),
                             backgroundColor: getCircleColor(
-                                dayListMapListFinal[i][3],
+                                dayListMapListFinal[i][4],
                                 dayListMapListFinal[i][2]),
                           ),
                         ),
@@ -1176,7 +1306,7 @@ class DuoCalendar {
                               ),
                             ),
                             backgroundColor: getCircleColor(
-                                dayListMapListFinal[i][3],
+                                dayListMapListFinal[i][4],
                                 dayListMapListFinal[i][2]),
                           ),
                         ),
@@ -1240,7 +1370,7 @@ class DuoCalendar {
                               ),
                             ),
                             backgroundColor: getCircleColor(
-                                dayListMapListFinal[i][3],
+                                dayListMapListFinal[i][4],
                                 dayListMapListFinal[i][2]),
                           ),
                         ),
@@ -1307,7 +1437,7 @@ class DuoCalendar {
                                 ),
                               ),
                               backgroundColor: getCircleColor(
-                                  dayListMapListFinal[i][3],
+                                  dayListMapListFinal[i][4],
                                   dayListMapListFinal[i][2]),
                             ),
                           ),
@@ -1375,7 +1505,7 @@ class DuoCalendar {
                                 ),
                               ),
                               backgroundColor: getCircleColor(
-                                  dayListMapListFinal[i][3],
+                                  dayListMapListFinal[i][4],
                                   dayListMapListFinal[i][2]),
                             ),
                           ),
@@ -1443,7 +1573,7 @@ class DuoCalendar {
                                 ),
                               ),
                               backgroundColor: getCircleColor(
-                                  dayListMapListFinal[i][3],
+                                  dayListMapListFinal[i][4],
                                   dayListMapListFinal[i][2]),
                             ),
                           ),
