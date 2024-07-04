@@ -38,7 +38,8 @@ class StreakService {
   //Now we filtre the streakList for the current month
   void StreakListFilterFunction() {
     streakListFilter = streakList.where((element) {
-      return element.month == supplyDate.month && element.year == supplyDate.year;
+      return element.month == supplyDate.month &&
+          element.year == supplyDate.year;
     }).toList();
 
     //Now we sort the streakListFilter
@@ -63,12 +64,13 @@ class StreakService {
       streakListFilterGroup.add({streakListFilter[0]: 0});
     } else {
       if (streakListFilter[0].day + 1 == streakListFilter[1].day) {
-        streakListFilterGroup.add({streakListFilter[0]: 1});
+        streakListFilterGroup.add({streakListFilter[0]: 1}); //streak start day
         previousDayIsStreak = true;
       } else {
-        streakListFilterGroup.add({streakListFilter[0]: 0});
+        streakListFilterGroup.add({streakListFilter[0]: 0}); //stand alone day
       }
     }
+
 
     //for the middle elements of the streakListFilter
     for (int i = 1; i < len - 1; i++) {
@@ -96,10 +98,12 @@ class StreakService {
     }
 
     //for the last element of the streakListFilter
-    if (streakListFilter[len - 1].day - 1 == streakListFilter[len - 2].day) {
-      streakListFilterGroup.add({streakListFilter[len - 1]: 2});
-    } else {
-      streakListFilterGroup.add({streakListFilter[len - 1]: 0});
+    if (len > 1) {
+      if (streakListFilter[len - 1].day - 1 == streakListFilter[len - 2].day) {
+        streakListFilterGroup.add({streakListFilter[len - 1]: 2});
+      } else {
+        streakListFilterGroup.add({streakListFilter[len - 1]: 0});
+      }
     }
 
     //1st element
@@ -115,17 +119,21 @@ class StreakService {
     int len = streakList.length;
     int _currentStreak = 1;
     int _longestStreak = 0;
-    for (int i = 0; i < len - 1; i++) {
-      if (streakList[i].day + 1 == streakList[i + 1].day) {
-        _currentStreak++;
-        // print('counting currentStreak: $_currentStreak');
-        if (_currentStreak > _longestStreak) {
-          _longestStreak = _currentStreak;
-          // print('New longestStreak: $_longestStreak');
+    if (streakList.length > 1) {
+      for (int i = 0; i < len - 1; i++) {
+        if (streakList[i].day + 1 == streakList[i + 1].day) {
+          _currentStreak++;
+          // print('counting currentStreak: $_currentStreak');
+          if (_currentStreak > _longestStreak) {
+            _longestStreak = _currentStreak;
+            // print('New longestStreak: $_longestStreak');
+          }
+        } else {
+          _currentStreak = 0;
         }
-      } else {
-        _currentStreak = 0;
       }
+    } else {
+      _longestStreak = 1;
     }
     longestStreak = _longestStreak;
   }
@@ -190,15 +198,22 @@ class StreakService {
     return true;
   }
 
+  void clearDuplicates() {
+    streakListFilter = streakListFilter.toSet().toList();
+  }
+
   //USER FUNCTION_______________________________________________________________
   void CalculateStreaks() {
     //See if streakList is empty
     if (streakList.isEmpty) {
       return;
     }
+    clearDuplicates();
     SortStreakList(); //MANDATORY STEP 1
+
     StreakListFilterFunction();
     //Now check if the streakListFilter is empty
+
     if (streakListFilter.isEmpty) {
       return;
     }
